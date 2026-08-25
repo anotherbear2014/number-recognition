@@ -6,7 +6,11 @@ import {
   GAME_NUMBERS,
   isGameNumber
 } from './audio/audioMap';
-import { chooseNonRepeatingIndex, SpeechPlayback } from './audio/audio-playback';
+import {
+  chooseNonRepeatingIndex,
+  SpeechPlayback,
+  type SpeechClip
+} from './audio/audio-playback';
 import { QuestionPromptScheduler } from './audio/question-prompt-scheduler';
 // Replace this import to swap the Start-screen animation without touching game logic.
 import { renderStartAnimation } from './components/StartAnimation';
@@ -43,33 +47,19 @@ const audioBank = Object.fromEntries(
   GAME_NUMBERS.map((number) => [
     number,
     {
-      number: new Audio(audioMap[number].number),
-      prompt: new Audio(audioMap[number].prompt),
-      response: new Audio(audioMap[number].response)
+      number: { src: audioMap[number].number },
+      prompt: { src: audioMap[number].prompt, playbackRate: audioPlaybackRates.prompt },
+      response: { src: audioMap[number].response }
     }
   ])
 ) as Record<
   (typeof GAME_NUMBERS)[number],
-  { number: HTMLAudioElement; prompt: HTMLAudioElement; response: HTMLAudioElement }
+  { number: SpeechClip; prompt: SpeechClip; response: SpeechClip }
 >;
-const openingDialogueSound = new Audio(feedbackAudio.opening);
-const yesSound = new Audio(feedbackAudio.yes);
-const tryAgainSound = new Audio(feedbackAudio.tryAgain);
-const praiseSounds = feedbackAudio.praise.map((path) => new Audio(path));
-
-Object.values(audioBank).forEach(({ prompt }) => {
-  prompt.playbackRate = audioPlaybackRates.prompt;
-});
-
-[
-  ...Object.values(audioBank).flatMap(({ number, prompt, response }) => [number, prompt, response]),
-  openingDialogueSound,
-  yesSound,
-  tryAgainSound,
-  ...praiseSounds
-].forEach((sound) => {
-  sound.preload = 'auto';
-});
+const openingDialogueClip: SpeechClip = { src: feedbackAudio.opening };
+const yesClip: SpeechClip = { src: feedbackAudio.yes };
+const tryAgainClip: SpeechClip = { src: feedbackAudio.tryAgain };
+const praiseClips: SpeechClip[] = feedbackAudio.praise.map((src) => ({ src }));
 
 let questions: Question[] = [];
 let questionIndex = 0;
@@ -77,10 +67,10 @@ let phase: GamePhase = 'start';
 let explorationHasSelection = false;
 let lastPraiseIndex: number | null = null;
 
-function choosePraiseSound(): HTMLAudioElement {
-  const praiseIndex = chooseNonRepeatingIndex(praiseSounds.length, lastPraiseIndex);
+function choosePraiseClip(): SpeechClip {
+  const praiseIndex = chooseNonRepeatingIndex(praiseClips.length, lastPraiseIndex);
   lastPraiseIndex = praiseIndex;
-  return praiseSounds[praiseIndex];
+  return praiseClips[praiseIndex];
 }
 
 function renderStart(): void {
@@ -128,7 +118,7 @@ function startExploration(): void {
   }
 
   renderExploration();
-  speechPlayback.play(openingDialogueSound);
+  void speechPlayback.unlock(openingDialogueClip);
 }
 
 function chooseExplorationNumber(number: number): void {
@@ -136,7 +126,7 @@ function chooseExplorationNumber(number: number): void {
     return;
   }
 
-  speechPlayback.play(audioBank[number].number);
+  void speechPlayback.play(audioBank[number].number);
 
   if (!explorationHasSelection) {
     explorationHasSelection = true;
@@ -177,6 +167,13 @@ function renderQuestion(): void {
       </div>
     </section>`;
 
+  if (!isGameNumber(question.target)) {
+    return;
+  }
+
+  const promptClip = audioBank[question.target].prompt;
+  speechPlayback.prepare(promptClip);
+
   questionPromptScheduler.schedule(() => {
     if (
       phase !== 'question' ||
@@ -187,7 +184,7 @@ function renderQuestion(): void {
       return;
     }
 
-    speechPlayback.play(audioBank[question.target].prompt);
+    void speechPlayback.play(promptClip);
   }, QUESTION_PROMPT_DELAY_MS);
 }
 
@@ -264,7 +261,7 @@ async function completeCorrectAnswer(answer: number): Promise<void> {
 
   await Promise.all([
     waitForCelebration(),
-    speechPlayback.playSequence([yesSound, audioBank[answer].response, choosePraiseSound()])
+    speechPlayback.playSequence([yesClip, audioBank[answer].response, choosePraiseClip()])
   ]);
 
   if (phase !== 'correct') {
@@ -287,7 +284,7 @@ async function playIncorrectFeedback(answer: number): Promise<void> {
     return;
   }
 
-  await speechPlayback.playSequence([audioBank[answer].response, tryAgainSound]);
+  await speechPlayback.playSequence([audioBank[answer].response, tryAgainClip]);
 }
 
 function chooseAnswer(answer: number, sourceButton: HTMLButtonElement): void {
