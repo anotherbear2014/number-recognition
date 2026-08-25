@@ -1,0 +1,2 @@
+export const CORRECT_ANSWER_DURATION_MS = 3000;
+export const QUESTION_PROMPT_DELAY_MS = 1000;

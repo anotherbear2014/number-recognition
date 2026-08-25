@@ -1,4 +1,6 @@
 :root {
+  --numeral-grow-duration: 500ms;
+  --star-animation-duration: 1760ms;
   color: #25231f;
   background: #f8f4e9;
   font-family: ui-rounded, "Arial Rounded MT Bold", "Helvetica Neue", Arial, sans-serif;
@@ -59,45 +61,8 @@ button[hidden] {
   pointer-events: none;
 }
 
-.start-number {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  width: clamp(92px, 15vmin, 150px);
-  height: clamp(92px, 15vmin, 150px);
-  border: 5px solid #376a78;
-  border-radius: 50%;
-  color: #376a78;
-  background: #fffdf8;
-  box-shadow: 0 7px 0 #c3d2ce;
-  font-size: clamp(56px, 9vmin, 92px);
-  font-weight: 800;
-  line-height: 1;
-  animation: start-number-float 3.8s ease-in-out infinite;
-}
-
-.start-number-one {
-  left: 10%;
-  top: 18%;
-  transform: rotate(-8deg);
-}
-
-.start-number-two {
-  right: 11%;
-  top: 13%;
-  animation-delay: -1.3s;
-  transform: rotate(7deg);
-}
-
-.start-number-three {
-  right: 16%;
-  bottom: 11%;
-  animation-delay: -2.4s;
-  transform: rotate(-5deg);
-}
-
 .exploration-screen {
-  --explore-button-size: clamp(76px, 11vmin, 116px);
+  --explore-button-size: clamp(126px, 19vmin, 160px);
   position: relative;
   display: grid;
   place-items: center;
@@ -109,7 +74,7 @@ button[hidden] {
   display: grid;
   grid-template-columns: repeat(5, var(--explore-button-size));
   grid-auto-rows: var(--explore-button-size);
-  gap: clamp(28px, 5vmin, 50px) clamp(26px, 4vw, 46px);
+  gap: clamp(14px, 2.4vmin, 28px) clamp(16px, 2.4vw, 28px);
   place-content: center;
 }
 
@@ -122,20 +87,24 @@ button[hidden] {
   padding: 0;
   border: 4px solid #376a78;
   border-radius: 24px;
-  color: #213b43;
   background: #fffdf8;
   box-shadow: 0 5px 0 #b8cbc9;
-  font-size: clamp(48px, 7vmin, 78px);
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
 }
 
+.number-button {
+  color: var(--number-color);
+  font-size: clamp(88px, 14vmin, 128px);
+}
+
 .start-arrow-button {
   position: absolute;
   right: 0;
   bottom: 0;
+  color: #213b43;
   font-size: clamp(54px, 8vmin, 88px);
 }
 
@@ -160,7 +129,6 @@ button[hidden] {
 .start-again-button {
   border: 5px solid #376a78;
   border-radius: 30px;
-  color: #213b43;
   background: #fffdf8;
   box-shadow: 0 7px 0 #b8cbc9;
   cursor: pointer;
@@ -170,9 +138,15 @@ button[hidden] {
 .answer-button {
   aspect-ratio: 1;
   min-height: 180px;
+  color: var(--number-color);
   font-size: clamp(96px, 18vmin, 184px);
   font-weight: 800;
   line-height: 1;
+}
+
+.start-button,
+.start-again-button {
+  color: #213b43;
 }
 
 .answer-button:active,
@@ -199,7 +173,7 @@ button[hidden] {
   overflow: hidden;
   background: #f8f4e9;
   pointer-events: none;
-  animation: celebration-lifecycle 1.15s linear;
+  animation: celebration-lifecycle var(--correct-answer-duration) linear;
 }
 
 .reinforced-numeral {
@@ -213,7 +187,7 @@ button[hidden] {
   height: var(--source-height);
   border: 5px solid #376a78;
   border-radius: 30px;
-  color: #213b43;
+  color: var(--number-color);
   background: #fffdf8;
   box-shadow: 0 7px 0 #b8cbc9;
   font-size: var(--source-font-size);
@@ -221,7 +195,8 @@ button[hidden] {
   line-height: 1;
   transform: translate(0, 0);
   transform-origin: center;
-  animation: numeral-to-center 500ms cubic-bezier(0.22, 0.75, 0.25, 1) forwards;
+  animation: numeral-to-center var(--numeral-grow-duration)
+    cubic-bezier(0.22, 0.75, 0.25, 1) forwards;
   will-change: left, top, width, height, transform, font-size;
 }
 
@@ -240,7 +215,8 @@ button[hidden] {
   line-height: 1;
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.25) rotate(-25deg);
-  animation: star-pop 760ms cubic-bezier(0.2, 0.85, 0.35, 1.3) var(--star-delay) both;
+  animation: star-pop var(--star-animation-duration) cubic-bezier(0.2, 0.85, 0.35, 1.3)
+    var(--star-delay) both;
 }
 
 .end-screen {
@@ -280,16 +256,6 @@ button[hidden] {
   font-size: clamp(34px, 6vmin, 58px);
 }
 
-@keyframes start-number-float {
-  0%,
-  100% {
-    margin-top: 0;
-  }
-  50% {
-    margin-top: -18px;
-  }
-}
-
 @keyframes numeral-to-center {
   to {
     left: 50%;
@@ -298,7 +264,7 @@ button[hidden] {
     height: min(72vh, 480px);
     border-color: transparent;
     border-radius: 0;
-    color: #111111;
+    color: var(--number-color);
     box-shadow: none;
     font-size: clamp(150px, 44vmin, 360px);
     transform: translate(-50%, -50%);
@@ -353,20 +319,11 @@ button[hidden] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .start-number {
-    animation: none;
-  }
-
   .reinforced-numeral {
     animation-duration: 180ms;
   }
 
   .celebration-star {
-    animation-duration: 420ms;
-  }
-
-  .reinforcement-screen {
-    animation-duration: 620ms;
+    animation-duration: 1420ms;
   }
 }
-

@@ -71,3 +71,17 @@ export class SpeechPlayback {
   }
 }
 
+export function chooseNonRepeatingIndex(
+  itemCount: number,
+  previousIndex: number | null,
+  random: () => number = Math.random
+): number {
+  if (!Number.isInteger(itemCount) || itemCount < 1) {
+    throw new Error('At least one item is required.');
+  }
+
+  const choices = Array.from({ length: itemCount }, (_, index) => index).filter(
+    (index) => itemCount === 1 || index !== previousIndex
+  );
+  return choices[Math.floor(random() * choices.length)];
+}

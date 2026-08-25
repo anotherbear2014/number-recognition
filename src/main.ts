@@ -1,10 +1,19 @@
 import './styles.css';
-import { audioMap, feedbackAudio, GAME_NUMBERS, isGameNumber } from './audio/audioMap';
-import { SpeechPlayback } from './audio/audio-playback';
+import {
+  audioMap,
+  audioPlaybackRates,
+  feedbackAudio,
+  GAME_NUMBERS,
+  isGameNumber
+} from './audio/audioMap';
+import { chooseNonRepeatingIndex, SpeechPlayback } from './audio/audio-playback';
+import { QuestionPromptScheduler } from './audio/question-prompt-scheduler';
 // Replace this import to swap the Start-screen animation without touching game logic.
 import { renderStartAnimation } from './components/StartAnimation';
 // Celebration is intentionally isolated so a future animation can replace it independently.
 import { renderCelebration } from './components/Celebration';
+import { getNumberColor } from './config/numberColors';
+import { CORRECT_ANSWER_DURATION_MS, QUESTION_PROMPT_DELAY_MS } from './config/timing';
 import { createSession, type Question } from './questions';
 
 type GamePhase = 'start' | 'exploration' | 'question' | 'correct' | 'end';
@@ -29,24 +38,35 @@ function getAppRoot(): HTMLElement {
 
 const app = getAppRoot();
 const speechPlayback = new SpeechPlayback();
+const questionPromptScheduler = new QuestionPromptScheduler();
 const audioBank = Object.fromEntries(
   GAME_NUMBERS.map((number) => [
     number,
     {
       number: new Audio(audioMap[number].number),
       prompt: new Audio(audioMap[number].prompt),
-      correct: new Audio(audioMap[number].correct)
+      response: new Audio(audioMap[number].response)
     }
   ])
 ) as Record<
   (typeof GAME_NUMBERS)[number],
-  { number: HTMLAudioElement; prompt: HTMLAudioElement; correct: HTMLAudioElement }
+  { number: HTMLAudioElement; prompt: HTMLAudioElement; response: HTMLAudioElement }
 >;
+const openingDialogueSound = new Audio(feedbackAudio.opening);
+const yesSound = new Audio(feedbackAudio.yes);
 const tryAgainSound = new Audio(feedbackAudio.tryAgain);
+const praiseSounds = feedbackAudio.praise.map((path) => new Audio(path));
+
+Object.values(audioBank).forEach(({ prompt }) => {
+  prompt.playbackRate = audioPlaybackRates.prompt;
+});
 
 [
-  ...Object.values(audioBank).flatMap(({ number, prompt, correct }) => [number, prompt, correct]),
-  tryAgainSound
+  ...Object.values(audioBank).flatMap(({ number, prompt, response }) => [number, prompt, response]),
+  openingDialogueSound,
+  yesSound,
+  tryAgainSound,
+  ...praiseSounds
 ].forEach((sound) => {
   sound.preload = 'auto';
 });
@@ -55,8 +75,16 @@ let questions: Question[] = [];
 let questionIndex = 0;
 let phase: GamePhase = 'start';
 let explorationHasSelection = false;
+let lastPraiseIndex: number | null = null;
+
+function choosePraiseSound(): HTMLAudioElement {
+  const praiseIndex = chooseNonRepeatingIndex(praiseSounds.length, lastPraiseIndex);
+  lastPraiseIndex = praiseIndex;
+  return praiseSounds[praiseIndex];
+}
 
 function renderStart(): void {
+  questionPromptScheduler.cancel();
   phase = 'start';
   explorationHasSelection = false;
   app.innerHTML = `
@@ -67,6 +95,7 @@ function renderStart(): void {
 }
 
 function renderExploration(): void {
+  questionPromptScheduler.cancel();
   phase = 'exploration';
   explorationHasSelection = false;
   app.innerHTML = `
@@ -79,6 +108,7 @@ function renderExploration(): void {
               type="button"
               data-explore-number="${number}"
               aria-label="${number}"
+              style="--number-color: ${getNumberColor(number)}"
             >${number}</button>`
         ).join('')}
       </div>
@@ -98,6 +128,7 @@ function startExploration(): void {
   }
 
   renderExploration();
+  speechPlayback.play(openingDialogueSound);
 }
 
 function chooseExplorationNumber(number: number): void {
@@ -122,6 +153,7 @@ function renderAnswers(question: Question): string {
           type="button"
           data-answer="${choice}"
           aria-label="${choice}"
+          style="--number-color: ${getNumberColor(choice)}"
         >${choice}</button>`
     )
     .join('');
@@ -129,6 +161,9 @@ function renderAnswers(question: Question): string {
 
 function renderQuestion(): void {
   const question = questions[questionIndex];
+  const scheduledQuestionIndex = questionIndex;
+
+  questionPromptScheduler.cancel();
 
   app.innerHTML = `
     <section
@@ -142,9 +177,18 @@ function renderQuestion(): void {
       </div>
     </section>`;
 
-  if (isGameNumber(question.target)) {
+  questionPromptScheduler.schedule(() => {
+    if (
+      phase !== 'question' ||
+      questionIndex !== scheduledQuestionIndex ||
+      questions[questionIndex]?.target !== question.target ||
+      !isGameNumber(question.target)
+    ) {
+      return;
+    }
+
     speechPlayback.play(audioBank[question.target].prompt);
-  }
+  }, QUESTION_PROMPT_DELAY_MS);
 }
 
 function startGame(): void {
@@ -155,6 +199,7 @@ function startGame(): void {
   speechPlayback.stop();
   questions = createSession();
   questionIndex = 0;
+  lastPraiseIndex = null;
   phase = 'question';
   renderQuestion();
 }
@@ -172,7 +217,11 @@ function getNumeralOrigin(button: HTMLButtonElement): NumeralOrigin {
 
 function renderCorrectAnswer(answer: number, origin: NumeralOrigin): void {
   app.innerHTML = `
-    <section class="reinforcement-screen" aria-label="Correct answer">
+    <section
+      class="reinforcement-screen"
+      aria-label="Correct answer"
+      style="--correct-answer-duration: ${CORRECT_ANSWER_DURATION_MS}ms"
+    >
       ${renderCelebration()}
       <div
         class="reinforced-numeral"
@@ -183,6 +232,7 @@ function renderCorrectAnswer(answer: number, origin: NumeralOrigin): void {
           --source-width: ${origin.width}px;
           --source-height: ${origin.height}px;
           --source-font-size: ${origin.fontSize}px;
+          --number-color: ${getNumberColor(answer)};
         "
       >${answer}</div>
     </section>`;
@@ -214,7 +264,7 @@ async function completeCorrectAnswer(answer: number): Promise<void> {
 
   await Promise.all([
     waitForCelebration(),
-    speechPlayback.playSequence([audioBank[answer].correct])
+    speechPlayback.playSequence([yesSound, audioBank[answer].response, choosePraiseSound()])
   ]);
 
   if (phase !== 'correct') {
@@ -237,7 +287,7 @@ async function playIncorrectFeedback(answer: number): Promise<void> {
     return;
   }
 
-  await speechPlayback.playSequence([audioBank[answer].number, tryAgainSound]);
+  await speechPlayback.playSequence([audioBank[answer].response, tryAgainSound]);
 }
 
 function chooseAnswer(answer: number, sourceButton: HTMLButtonElement): void {
@@ -245,6 +295,7 @@ function chooseAnswer(answer: number, sourceButton: HTMLButtonElement): void {
     return;
   }
 
+  questionPromptScheduler.cancel();
   const question = questions[questionIndex];
   if (answer !== question.target) {
     void playIncorrectFeedback(answer);
@@ -259,6 +310,7 @@ function chooseAnswer(answer: number, sourceButton: HTMLButtonElement): void {
 }
 
 function renderEnd(): void {
+  questionPromptScheduler.cancel();
   app.innerHTML = `
     <section class="end-screen">
       <h1>The End</h1>
