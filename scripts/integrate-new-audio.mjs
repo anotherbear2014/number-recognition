@@ -30,7 +30,7 @@ const jobs = [
     destination: `prompts/tap-the-number-${index + 1}.wav`
   })),
   ...NUMBER_WORDS.map((word, index) => ({
-    source: `thats-${word}-nichalia.wav`,
+    source: index === 7 ? 'thats-8-v2-nichalia.wav' : `thats-${word}-nichalia.wav`,
     destination: `responses/thats-${index + 1}.wav`
   })),
   {
@@ -188,4 +188,3 @@ for (const { source, destination } of jobs) {
 }
 
 console.log(`Integrated ${jobs.length} production WAV files without altering the masters.`);
-

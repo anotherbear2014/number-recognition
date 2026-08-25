@@ -177,6 +177,10 @@ for (const file of expectedFiles) {
 
 const mainSource = readFileSync(join(process.cwd(), 'src/main.ts'), 'utf8');
 const audioMapSource = readFileSync(join(process.cwd(), 'src/audio/audioMap.ts'), 'utf8');
+const audioIntegrationSource = readFileSync(
+  join(process.cwd(), 'scripts/integrate-new-audio.mjs'),
+  'utf8'
+);
 const startAnimationSource = readFileSync(
   join(process.cwd(), 'src/components/StartAnimation.ts'),
   'utf8'
@@ -206,6 +210,8 @@ assert.match(mainSource, /prompt\.playbackRate\s*=\s*audioPlaybackRates\.prompt/
 assert.doesNotMatch(mainSource, /(?:number|response)\.playbackRate/);
 assert.match(audioMapSource, /tap-the-number-\$\{number\}\.wav/);
 assert.match(audioMapSource, /responses\/thats-\$\{number\}\.wav/);
+assert.match(audioIntegrationSource, /thats-8-v2-nichalia\.wav/);
+assert.doesNotMatch(audioIntegrationSource, /thats-eight-nichalia\.wav/);
 assert.match(mainSource, /speechPlayback\.play\(openingDialogueSound\)/);
 assert.match(mainSource, /\[yesSound,\s*audioBank\[answer\]\.response,\s*choosePraiseSound\(\)\]/);
 assert.match(mainSource, /\[audioBank\[answer\]\.response,\s*tryAgainSound\]/);
