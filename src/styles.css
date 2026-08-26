@@ -62,7 +62,8 @@ button[hidden] {
 }
 
 .exploration-screen {
-  --explore-button-size: clamp(126px, 19vmin, 160px);
+  --explore-button-size: clamp(120px, 17.5vmin, 146px);
+  --explore-column-gap: clamp(12px, 1.7vw, 18px);
   position: relative;
   display: grid;
   place-items: center;
@@ -71,11 +72,12 @@ button[hidden] {
 }
 
 .number-grid {
-  display: grid;
-  grid-template-columns: repeat(5, var(--explore-button-size));
-  grid-auto-rows: var(--explore-button-size);
-  gap: clamp(14px, 2.4vmin, 28px) clamp(16px, 2.4vw, 28px);
-  place-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(14px, 2.4vmin, 28px) var(--explore-column-gap);
+  width: calc(6 * var(--explore-button-size) + 5 * var(--explore-column-gap));
+  max-width: 100%;
 }
 
 .number-button,
@@ -302,10 +304,11 @@ button[hidden] {
 
   .exploration-screen {
     --explore-button-size: clamp(62px, 17vh, 88px);
+    --explore-column-gap: clamp(10px, 2vw, 16px);
   }
 
   .number-grid {
-    gap: 14px clamp(16px, 3vw, 28px);
+    gap: 14px var(--explore-column-gap);
   }
 
   .answer-row {

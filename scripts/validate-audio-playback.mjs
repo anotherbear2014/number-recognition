@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chooseNonRepeatingIndex, SpeechPlayback } from '../src/audio/audio-playback.ts';
 import { QuestionPromptScheduler } from '../src/audio/question-prompt-scheduler.ts';
+import { audioMap, audioPlaybackRates, GAME_NUMBERS } from '../src/audio/audioMap.ts';
 import { numberColors } from '../src/config/numberColors.ts';
 import {
   CORRECT_ANSWER_DURATION_MS,
@@ -92,7 +93,7 @@ assert.equal(persistentPlayer.playCount, 1, 'Unlock must play on the persistent 
 persistentPlayer.finish();
 assert.equal(await unlockPlayback, true);
 
-const promptClip = { src: 'tap-the-number-eight.wav', playbackRate: 0.9 };
+const promptClip = { src: audioMap[0].prompt, playbackRate: audioPlaybackRates.prompt };
 const loadCountBeforePrompt = persistentPlayer.loadCount;
 playback.prepare(promptClip);
 assert.equal(persistentPlayer.src, promptClip.src);
@@ -108,11 +109,11 @@ assert.equal(persistentPlayer.playSources.filter((src) => src === promptClip.src
 persistentPlayer.finish();
 assert.equal(await promptPlayback, true);
 
-const numberClip = { src: 'number.wav' };
+const incorrectResponseClip = { src: audioMap[0].response };
 const tryAgainClip = { src: 'try-again.wav' };
-const incorrectSequence = playback.playSequence([numberClip, tryAgainClip]);
+const incorrectSequence = playback.playSequence([incorrectResponseClip, tryAgainClip]);
 
-assert.equal(persistentPlayer.src, numberClip.src);
+assert.equal(persistentPlayer.src, incorrectResponseClip.src);
 assert.equal(persistentPlayer.playbackRate, 1, 'Non-prompt audio must retain normal speed.');
 assert.equal(persistentPlayer.playSources.includes(tryAgainClip.src), false);
 persistentPlayer.finish();
@@ -138,7 +139,7 @@ persistentPlayer.finish();
 assert.equal(await replacementPlayback, true);
 
 const yesClip = { src: 'yes.wav' };
-const responseClip = { src: 'thats-eight.wav' };
+const responseClip = { src: audioMap[0].response };
 const praiseClip = { src: 'good-job.wav' };
 const correctSequence = playback.playSequence([yesClip, responseClip, praiseClip]);
 assert.equal(persistentPlayer.src, yesClip.src);
@@ -216,9 +217,11 @@ promptScheduler.cancel();
 assert.equal(pendingTimers.has(answerTimerId), false, 'Answer feedback must cancel a pending prompt.');
 
 const expectedFiles = [
-  ...Array.from({ length: 10 }, (_, index) => join(process.cwd(), `public/audio/numbers/${index + 1}.wav`)),
-  ...Array.from({ length: 10 }, (_, index) => join(process.cwd(), `public/audio/prompts/tap-the-number-${index + 1}.wav`)),
-  ...Array.from({ length: 10 }, (_, index) => join(process.cwd(), `public/audio/responses/thats-${index + 1}.wav`)),
+  ...GAME_NUMBERS.map((number) => join(process.cwd(), `public/audio/numbers/${number}.wav`)),
+  ...GAME_NUMBERS.map((number) =>
+    join(process.cwd(), `public/audio/prompts/tap-the-number-${number}.wav`)
+  ),
+  ...GAME_NUMBERS.map((number) => join(process.cwd(), `public/audio/responses/thats-${number}.wav`)),
   join(process.cwd(), 'public/audio/opening/number-opening-dialogue.wav'),
   join(process.cwd(), 'public/audio/feedback/yes.wav'),
   join(process.cwd(), 'public/audio/feedback/try-again.wav'),
@@ -252,6 +255,7 @@ const startAnimationSource = readFileSync(
 );
 const stylesSource = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
 assert.deepEqual(numberColors, {
+  0: '#555B61',
   1: '#D32F2F',
   2: '#F57C00',
   3: '#388E3C',
@@ -263,6 +267,11 @@ assert.deepEqual(numberColors, {
   9: '#C2185B',
   10: '#1976D2'
 });
+assert.deepEqual(GAME_NUMBERS, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+assert.equal(audioMap[0].number, '/audio/numbers/0.wav');
+assert.equal(audioMap[0].prompt, '/audio/prompts/tap-the-number-0.wav');
+assert.equal(audioMap[0].response, '/audio/responses/thats-0.wav');
+assert.equal(audioPlaybackRates.prompt, 0.9);
 assert.equal(CORRECT_ANSWER_DURATION_MS, 3000);
 assert.equal(QUESTION_PROMPT_DELAY_MS, 1000);
 assert.match(mainSource, /questionPromptScheduler\.schedule/);
@@ -282,6 +291,9 @@ assert.equal(
 assert.match(mainSource, /speechPlayback\.unlock\(openingDialogueClip\)/);
 assert.match(mainSource, /speechPlayback\.prepare\(promptClip\)/);
 assert.match(mainSource, /speechPlayback\.play\(promptClip\)/);
+assert.match(mainSource, /GAME_NUMBERS\.map/);
+assert.match(mainSource, /data-explore-number="\$\{number\}"/);
+assert.match(mainSource, /speechPlayback\.play\(audioBank\[number\]\.number\)/);
 assert.match(audioPlaybackSource, /player\.play\(\)\.catch\(fail\)/);
 assert.match(audioMapSource, /tap-the-number-\$\{number\}\.wav/);
 assert.match(audioMapSource, /responses\/thats-\$\{number\}\.wav/);
@@ -293,6 +305,7 @@ assert.doesNotMatch(audioMapSource, /choose-|yes-thats-/);
 assert.doesNotMatch(startAnimationSource, />[1-9][0-9]*</);
 assert.match(mainSource, /--correct-answer-duration:\s*\$\{CORRECT_ANSWER_DURATION_MS\}ms/);
 assert.match(stylesSource, /font-size:\s*clamp\(88px,\s*14vmin,\s*128px\)/);
+assert.match(stylesSource, /width:\s*calc\(6 \* var\(--explore-button-size\)/);
 assert.match(stylesSource, /--star-animation-duration:\s*1760ms/);
 assert.match(stylesSource, /color:\s*var\(--number-color\)/);
 

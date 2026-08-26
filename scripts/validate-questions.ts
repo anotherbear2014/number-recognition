@@ -21,9 +21,10 @@ function createSeededRandom(seed: number): () => number {
 }
 
 const observedTargets = new Set<number>();
+const observedDistractors = new Set<number>();
 const observedCorrectPositions = new Set<number>();
 
-for (let target = 1; target <= 10; target += 1) {
+for (let target = 0; target <= 10; target += 1) {
   for (let seed = 1; seed <= 1_000; seed += 1) {
     const choices = createAnswerChoices(target, createSeededRandom(seed));
     assert(choices.length === 3, `Target ${target}, seed ${seed}: must have three choices`);
@@ -48,24 +49,30 @@ for (let seed = 1; seed <= 10_000; seed += 1) {
     observedTargets.add(question.target);
     assert(
       NUMBERS.includes(question.target as (typeof NUMBERS)[number]),
-      `${label}: target is outside 1–10`
+      `${label}: target is outside 0–10`
     );
     assert(question.choices.length === 3, `${label}: must have three choices`);
     assert(new Set(question.choices).size === 3, `${label}: choices must be unique`);
     assert(
       question.choices.every((choice) => NUMBERS.includes(choice as (typeof NUMBERS)[number])),
-      `${label}: choice is outside 1–10`
+      `${label}: choice is outside 0–10`
     );
     assert(question.choices.includes(question.target), `${label}: target is missing`);
     assert(
       question.choices.filter((choice) => choice !== question.target).length === 2,
       `${label}: must have two valid distractors`
     );
+    question.choices
+      .filter((choice) => choice !== question.target)
+      .forEach((distractor) => observedDistractors.add(distractor));
     observedCorrectPositions.add(question.choices.indexOf(question.target));
   });
 }
 
-assert(observedTargets.size === 10, 'Every number must be able to appear as a target.');
+assert(observedTargets.size === 11, 'Every number from 0–10 must be able to appear as a target.');
+assert(observedTargets.has(0), 'Zero must be able to appear as a target.');
+assert(observedDistractors.size === 11, 'Every number from 0–10 must be able to be a distractor.');
+assert(observedDistractors.has(0), 'Zero must be able to appear as a distractor.');
 assert(
   observedCorrectPositions.size === 3,
   'The target must appear in all three choice positions across sessions.'

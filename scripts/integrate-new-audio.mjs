@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'n
 import { dirname, join } from 'node:path';
 
 const NUMBER_WORDS = [
+  'zero',
   'one',
   'two',
   'three',
@@ -23,15 +24,15 @@ const PEAK_CEILING_DBFS = -1;
 const jobs = [
   ...NUMBER_WORDS.map((word, index) => ({
     source: `${word}-nichalia.wav`,
-    destination: `numbers/${index + 1}.wav`
+    destination: `numbers/${index}.wav`
   })),
   ...NUMBER_WORDS.map((word, index) => ({
     source: `tap-the-number-${word}-nichalia.wav`,
-    destination: `prompts/tap-the-number-${index + 1}.wav`
+    destination: `prompts/tap-the-number-${index}.wav`
   })),
   ...NUMBER_WORDS.map((word, index) => ({
-    source: index === 7 ? 'thats-8-v2-nichalia.wav' : `thats-${word}-nichalia.wav`,
-    destination: `responses/thats-${index + 1}.wav`
+    source: word === 'eight' ? 'thats-8-v2-nichalia.wav' : `thats-${word}-nichalia.wav`,
+    destination: `responses/thats-${index}.wav`
   })),
   {
     source: 'numbers-opening-dialogue-nichalia.wav',
@@ -128,7 +129,44 @@ function measure(samples, sampleRate) {
       Math.max(1, activeWindows.length)
   );
 
-  return { activeRmsDbfs: decibels(activeRms), peakDbfs: decibels(peak) };
+  const silenceWindowSize = Math.max(1, Math.floor(sampleRate * 0.01));
+  const silenceThreshold = 10 ** (-45 / 20);
+  let firstActiveWindow = -1;
+  let lastActiveWindow = -1;
+  for (let start = 0, windowIndex = 0; start < normalized.length; start += silenceWindowSize) {
+    let energy = 0;
+    const end = Math.min(start + silenceWindowSize, normalized.length);
+    for (let index = start; index < end; index += 1) {
+      energy += normalized[index] * normalized[index];
+    }
+    if (Math.sqrt(energy / (end - start)) >= silenceThreshold) {
+      firstActiveWindow = firstActiveWindow < 0 ? windowIndex : firstActiveWindow;
+      lastActiveWindow = windowIndex;
+    }
+    windowIndex += 1;
+  }
+
+  const durationSeconds = samples.length / sampleRate;
+  const leadingSilenceSeconds =
+    firstActiveWindow < 0 ? durationSeconds : (firstActiveWindow * silenceWindowSize) / sampleRate;
+  const activeEndSeconds =
+    lastActiveWindow < 0
+      ? 0
+      : Math.min(durationSeconds, ((lastActiveWindow + 1) * silenceWindowSize) / sampleRate);
+  const trailingSilenceSeconds = Math.max(0, durationSeconds - activeEndSeconds);
+  const fullScaleSamples = samples.reduce(
+    (count, sample) => count + (sample === -32_768 || sample === 32_767 ? 1 : 0),
+    0
+  );
+
+  return {
+    activeRmsDbfs: decibels(activeRms),
+    peakDbfs: decibels(peak),
+    durationSeconds,
+    leadingSilenceSeconds,
+    trailingSilenceSeconds,
+    fullScaleSamples
+  };
 }
 
 function writeWave(file, samples, sampleRate, gainDb) {
@@ -182,7 +220,11 @@ for (const { source, destination } of jobs) {
 
   writeWave(join(PRODUCTION_ROOT, destination), samples, format.sampleRate, gainDb);
   console.log(
-    `${source} -> ${destination} | active ${measurement.activeRmsDbfs.toFixed(2)} dBFS | ` +
+    `${source} -> ${destination} | ${measurement.durationSeconds.toFixed(3)} s | ` +
+      `peak ${measurement.peakDbfs.toFixed(2)} dBFS | active ${measurement.activeRmsDbfs.toFixed(2)} dBFS | ` +
+      `silence ${measurement.leadingSilenceSeconds.toFixed(3)} s lead / ` +
+      `${measurement.trailingSilenceSeconds.toFixed(3)} s trail | ` +
+      `full-scale samples ${measurement.fullScaleSamples} | ` +
       `gain ${gainDb >= 0 ? '+' : ''}${gainDb.toFixed(2)} dB`
   );
 }

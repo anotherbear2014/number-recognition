@@ -1,4 +1,4 @@
-export const GAME_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export const GAME_NUMBERS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 export type GameNumber = (typeof GAME_NUMBERS)[number];
 
@@ -12,7 +12,7 @@ export const audioPlaybackRates = {
   prompt: 0.9
 } as const;
 
-const withBase = (path: string): string => `${import.meta.env.BASE_URL}${path}`;
+const withBase = (path: string): string => `${import.meta.env?.BASE_URL ?? '/'}${path}`;
 
 export const audioMap: Record<GameNumber, NumberAudioPaths> = Object.fromEntries(
   GAME_NUMBERS.map((number) => [

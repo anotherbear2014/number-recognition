@@ -30,7 +30,7 @@ Reuse wherever practical:
 
 - overall iPad landscape layout
 - Start screen
-- 1–10 exploration screen
+- 0–10 exploration screen
 - audio controller
 - numeral styling
 - three-choice interaction pattern
@@ -148,9 +148,9 @@ Add a short code comment near the component import explaining that this is the r
 
 The first screen after Start should behave like the corresponding screen in the existing Counting Game.
 
-Display all ten numerals:
+Display all eleven numerals:
 
-1 2 3 4 5 6 7 8 9 10
+0 1 2 3 4 5 6 7 8 9 10
 
 Use large toddler-friendly buttons or tiles.
 
@@ -190,12 +190,12 @@ Each game contains:
 
 **8 questions**
 
-Each session should choose **8 distinct target numbers from 1–10**.
+Each session should choose **8 distinct target numbers from 0–10**.
 
 Therefore:
 
 - no target number repeats during a single 8-question session
-- two numbers will not be targets during that session
+- three numbers will not be targets during that session
 - a new session should randomize the target set again
 
 Shuffle the selected eight targets into random order.
@@ -234,7 +234,7 @@ For every question:
 - two choices are incorrect numbers
 - incorrect numbers must be distinct from each other
 - incorrect numbers must not equal the target
-- randomly choose the two distractors from the other nine numbers
+- randomly choose the two distractors from the other ten numbers
 - randomize the left/middle/right position of all three choices
 
 Example:
@@ -255,7 +255,7 @@ or
 
 Do not intentionally introduce difficulty tiers in V1.
 
-All numbers 1–10 may serve as distractors.
+All numbers 0–10 may serve as distractors.
 
 ---
 
@@ -548,14 +548,14 @@ Randomization requirements:
 
 At the start of each game:
 
-1. Create numbers 1–10.
+1. Create numbers 0–10.
 2. Shuffle them.
 3. Take the first 8 as target numbers.
 4. Shuffle/order them for the session.
 
 For each target:
 
-1. Find the other nine possible numbers.
+1. Find the other ten possible numbers.
 2. Randomly select two distinct distractors.
 3. Combine target + distractors.
 4. Shuffle the three answer positions.
@@ -684,7 +684,7 @@ Before considering V1 complete, test:
 
 - Start opens correctly.
 - Start leads to exploration.
-- Exploration contains 1–10.
+- Exploration contains 0–10.
 - Tapping each number plays appropriate audio.
 - Forward arrow appears after first exploration tap.
 - Forward begins game.
@@ -694,7 +694,7 @@ Before considering V1 complete, test:
 
 ## Question Logic
 
-For every target 1–10:
+For every target 0–10:
 
 - correct target can appear
 - target is among three choices
@@ -817,7 +817,7 @@ V1 is complete when:
 - the existing Counting Game still works unchanged
 - Start screen works
 - exploration screen works
-- numbers 1–10 can be tapped and heard
+- numbers 0–10 can be tapped and heard
 - an 8-question randomized session works
 - every question shows exactly three numeral choices
 - incorrect answers say the tapped number followed by "Try again"

@@ -5,7 +5,7 @@ export interface Question {
   choices: number[];
 }
 
-export const NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+export const NUMBERS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 export const QUESTIONS_PER_SESSION = 8;
 
 export function shuffle<T>(values: readonly T[], random: RandomSource = Math.random): T[] {
@@ -39,4 +39,3 @@ export function createSession(random: RandomSource = Math.random): Question[] {
       choices: createAnswerChoices(target, random)
     }));
 }
-
