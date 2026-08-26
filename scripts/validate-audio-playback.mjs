@@ -109,27 +109,28 @@ assert.equal(persistentPlayer.playSources.filter((src) => src === promptClip.src
 persistentPlayer.finish();
 assert.equal(await promptPlayback, true);
 
-const incorrectResponseClip = { src: audioMap[0].response };
-const tryAgainClip = { src: 'try-again.wav' };
-const incorrectSequence = playback.playSequence([incorrectResponseClip, tryAgainClip]);
+const incorrectNumberClip = { src: audioMap[0].number };
+const incorrectPlayStart = persistentPlayer.playSources.length;
+const incorrectPlayback = playback.play(incorrectNumberClip);
 
-assert.equal(persistentPlayer.src, incorrectResponseClip.src);
+assert.equal(persistentPlayer.src, incorrectNumberClip.src);
 assert.equal(persistentPlayer.playbackRate, 1, 'Non-prompt audio must retain normal speed.');
-assert.equal(persistentPlayer.playSources.includes(tryAgainClip.src), false);
 persistentPlayer.finish();
-await flushPromises();
-assert.equal(persistentPlayer.src, tryAgainClip.src, 'Try again should follow the numeral.');
-persistentPlayer.finish();
-assert.equal(await incorrectSequence, true);
+assert.equal(await incorrectPlayback, true);
+assert.deepEqual(
+  persistentPlayer.playSources.slice(incorrectPlayStart),
+  [incorrectNumberClip.src],
+  'Incorrect feedback must play exactly one standalone number clip.'
+);
 
 const interruptedNumberClip = { src: 'interrupted-number.wav' };
-const canceledTryAgainClip = { src: 'canceled-try-again.wav' };
+const canceledFollowUpClip = { src: 'canceled-follow-up.wav' };
 const replacementClip = { src: 'replacement.wav' };
-const canceledSequence = playback.playSequence([interruptedNumberClip, canceledTryAgainClip]);
+const canceledSequence = playback.playSequence([interruptedNumberClip, canceledFollowUpClip]);
 const replacementPlayback = playback.play(replacementClip);
 await flushPromises();
 assert.equal(
-  persistentPlayer.playSources.includes(canceledTryAgainClip.src),
+  persistentPlayer.playSources.includes(canceledFollowUpClip.src),
   false,
   'A superseded sequence must not continue.'
 );
@@ -300,7 +301,9 @@ assert.match(audioMapSource, /responses\/thats-\$\{number\}\.wav/);
 assert.match(audioIntegrationSource, /thats-8-v2-nichalia\.wav/);
 assert.doesNotMatch(audioIntegrationSource, /thats-eight-nichalia\.wav/);
 assert.match(mainSource, /\[yesClip,\s*audioBank\[answer\]\.response,\s*choosePraiseClip\(\)\]/);
-assert.match(mainSource, /\[audioBank\[answer\]\.response,\s*tryAgainClip\]/);
+assert.match(mainSource, /speechPlayback\.play\(audioBank\[answer\]\.number\)/);
+assert.doesNotMatch(mainSource, /tryAgainClip/);
+assert.doesNotMatch(mainSource, /playIncorrectFeedback[\s\S]*?audioBank\[answer\]\.response/);
 assert.doesNotMatch(audioMapSource, /choose-|yes-thats-/);
 assert.doesNotMatch(startAnimationSource, />[1-9][0-9]*</);
 assert.match(mainSource, /--correct-answer-duration:\s*\$\{CORRECT_ANSWER_DURATION_MS\}ms/);

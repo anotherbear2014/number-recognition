@@ -286,13 +286,11 @@ Use the centralized audio controller from the Counting Game or equivalent.
 If the child selects an incorrect numeral:
 
 1. Immediately speak the numeral that was tapped.
-2. Then say:
-   "Try again."
-3. Remain on the same question.
-4. Keep all three answer choices available.
-5. Do not visually punish or mark the answer as wrong.
-6. Do not increment the question counter.
-7. Allow unlimited additional attempts.
+2. Remain on the same question.
+3. Keep all three answer choices available.
+4. Do not visually punish or mark the answer as wrong.
+5. Do not increment the question counter.
+6. Allow unlimited additional attempts.
 
 Example:
 
@@ -302,7 +300,7 @@ Child taps `3`
 
 Audio:
 
-"Three. Try again."
+"Three."
 
 The child can then tap another answer.
 
@@ -458,17 +456,12 @@ Filenames and paths are case-sensitive in production and should remain consisten
 
 # 18. Audio Composition
 
-For incorrect answers, it is acceptable and preferred to compose feedback using reusable clips:
-
-`[number audio]` + `[try-again audio]`
+For incorrect answers, play only the standalone number clip already used by the exploration
+screen.
 
 Example:
 
 `3.mp3`
-then
-`try-again.mp3`
-
-This avoids needing 10 separate "Three, try again" recordings.
 
 For prompts and correct answers, dedicated recordings are acceptable because they sound more natural:
 
@@ -708,7 +701,7 @@ Verify:
 
 - incorrect selection does not advance
 - tapped numeral is spoken
-- "Try again" follows
+- exactly one standalone numeral clip plays
 - child can try indefinitely
 - same wrong answer can be tapped repeatedly
 - choices remain available
@@ -820,7 +813,7 @@ V1 is complete when:
 - numbers 0–10 can be tapped and heard
 - an 8-question randomized session works
 - every question shows exactly three numeral choices
-- incorrect answers say the tapped number followed by "Try again"
+- incorrect answers play only the tapped number's standalone audio
 - correct answers enlarge the numeral and show the star celebration
 - correct answers say "Yes, that's [number]"
 - questions advance automatically

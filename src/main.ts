@@ -58,7 +58,6 @@ const audioBank = Object.fromEntries(
 >;
 const openingDialogueClip: SpeechClip = { src: feedbackAudio.opening };
 const yesClip: SpeechClip = { src: feedbackAudio.yes };
-const tryAgainClip: SpeechClip = { src: feedbackAudio.tryAgain };
 const praiseClips: SpeechClip[] = feedbackAudio.praise.map((src) => ({ src }));
 
 let questions: Question[] = [];
@@ -284,7 +283,7 @@ async function playIncorrectFeedback(answer: number): Promise<void> {
     return;
   }
 
-  await speechPlayback.playSequence([audioBank[answer].response, tryAgainClip]);
+  await speechPlayback.play(audioBank[answer].number);
 }
 
 function chooseAnswer(answer: number, sourceButton: HTMLButtonElement): void {
